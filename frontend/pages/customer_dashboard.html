@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Customer Dashboard</title>
+    <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+    <div class="layout">
+        <aside class="sidebar">
+            <div class="brand">Hyderabad Drone Delivery</div>
+            <a class="nav-link active" href="/pages/customer_dashboard.html">Dashboard</a>
+            <a class="nav-link" href="/pages/grocery.html">Order Grocery</a>
+            <a class="nav-link" href="/pages/cart.html">Cart</a>
+            <a class="nav-link" href="/pages/send_package.html">Send Package</a>
+            <a class="nav-link" href="#" onclick="logout()">Logout</a>
+        </aside>
+        <main class="main">
+            <div class="topbar"><h1>Customer Dashboard</h1><span data-user></span></div>
+            <section class="grid">
+                <a class="card" href="/pages/grocery.html"><h3>Order Grocery</h3><p class="muted">Dispatch from the nearest stocked dark store.</p></a>
+                <a class="card" href="/pages/send_package.html"><h3>Send Package</h3><p class="muted">Pick any Hyderabad pickup and delivery points.</p></a>
+                <a class="card" href="/pages/cart.html"><h3>Cart</h3><p class="muted">Review quantities and checkout.</p></a>
+            </section>
+        </main>
+    </div>
+    <script src="/js/api.js"></script><script>requireAuth("customer");</script>
+</body>
+</html>

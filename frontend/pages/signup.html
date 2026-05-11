@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Signup | Drone Delivery</title>
+    <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+    <main class="auth-shell">
+        <section class="auth-visual">
+            <h1>Create your drone delivery workspace</h1>
+            <p>Customer and admin roles share the same platform, with role-based access and JWT session persistence.</p>
+        </section>
+        <section class="auth-card">
+            <form id="signupForm" class="form-card">
+                <h2>Signup</h2>
+                <div class="field"><label>Name</label><input name="name" required></div>
+                <div class="field"><label>Email</label><input name="email" type="email" required></div>
+                <div class="field"><label>Password</label><input name="password" type="password" required minlength="6"></div>
+                <div class="field"><label>Role</label><select name="role"><option value="customer">Customer</option><option value="admin">Admin</option></select></div>
+                <button type="submit">Create account</button>
+                <p><a href="/pages/login.html">Back to login</a></p>
+            </form>
+        </section>
+    </main>
+    <script src="/js/api.js"></script>
+    <script src="/js/auth.js"></script>
+</body>
+</html>

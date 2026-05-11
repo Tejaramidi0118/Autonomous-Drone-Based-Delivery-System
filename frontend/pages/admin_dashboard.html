@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Admin Dashboard</title>
+    <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+    <div class="layout">
+        <aside class="sidebar">
+            <div class="brand">Drone Ops Admin</div>
+            <a class="nav-link active" href="/pages/admin_dashboard.html">Dashboard</a>
+            <a class="nav-link" href="/pages/drones.html">Drones</a>
+            <a class="nav-link" href="/pages/airspace.html">Airspace</a>
+            <a class="nav-link" href="/pages/simulation.html">Simulation</a>
+            <a class="nav-link" href="/pages/live_map.html">Live Map</a>
+            <a class="nav-link" href="#" onclick="logout()">Logout</a>
+        </aside>
+        <main class="main">
+            <div class="topbar"><h1>Analytics Dashboard</h1><span data-user></span></div>
+            <section id="metrics" class="grid"></section>
+            <h2>Per-hub order density</h2>
+            <canvas id="hubChart" class="chart"></canvas>
+        </main>
+    </div>
+    <script src="/js/api.js"></script><script src="/js/admin.js"></script><script>loadAdminDashboard();</script>
+</body>
+</html>

@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Send Package</title>
+    <link rel="stylesheet" href="/css/styles.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+</head>
+<body>
+    <div class="layout">
+        <aside class="sidebar">
+            <div class="brand">Hyderabad Drone Delivery</div>
+            <a class="nav-link" href="/pages/customer_dashboard.html">Dashboard</a>
+            <a class="nav-link" href="/pages/grocery.html">Order Grocery</a>
+            <a class="nav-link" href="/pages/cart.html">Cart</a>
+            <a class="nav-link active" href="/pages/send_package.html">Send Package</a>
+            <a class="nav-link" href="#" onclick="logout()">Logout</a>
+        </aside>
+        <main class="main">
+            <div class="topbar"><h1>Send Package</h1><div class="row"><button class="secondary" data-mode="pickup">Pickup</button><button class="secondary" data-mode="dropoff">Delivery</button></div></div>
+            <div class="split">
+                <div id="map" class="map"></div>
+                <form id="packageForm" class="card">
+                    <h3>Package details</h3>
+                    <div class="summary-box">
+                        <span>Estimated delivery distance</span>
+                        <strong id="packageDistance">Select pickup and delivery</strong>
+                    </div>
+                    <div class="field">
+                        <label>Saved addresses</label>
+                        <div id="savedAddresses" class="address-list"></div>
+                    </div>
+                    <div class="row">
+                        <button type="button" id="savePickup" class="secondary">Save pickup</button>
+                        <button type="button" id="saveDropoff" class="secondary">Save delivery</button>
+                    </div>
+                    <div class="field"><label>Weight kg</label><input name="weight" type="number" min=".1" max="6" value="1.5" step=".1"></div>
+                    <div class="field"><label>Package type</label><select name="package_type"><option>Documents</option><option>Medicines</option><option>Electronics</option><option>Parcel</option></select></div>
+                    <label class="row"><input style="width:auto" type="checkbox" name="fragile"> Fragile</label>
+                    <label class="row"><input style="width:auto" type="checkbox" name="priority"> Priority</label>
+                    <button type="submit">Create delivery</button>
+                </form>
+            </div>
+        </main>
+    </div>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="/js/api.js"></script><script src="/js/customer.js"></script><script>setupPackage();</script>
+</body>
+</html>

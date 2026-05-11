@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Live Operations Map</title>
+    <link rel="stylesheet" href="/css/styles.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+</head>
+<body>
+    <div class="layout">
+        <aside class="sidebar">
+            <div class="brand">Drone Ops Admin</div>
+            <a class="nav-link" href="/pages/admin_dashboard.html">Dashboard</a>
+            <a class="nav-link" href="/pages/drones.html">Drones</a>
+            <a class="nav-link" href="/pages/airspace.html">Airspace</a>
+            <a class="nav-link" href="/pages/simulation.html">Simulation</a>
+            <a class="nav-link active" href="/pages/live_map.html">Live Map</a>
+            <a class="nav-link" href="#" onclick="logout()">Logout</a>
+        </aside>
+        <main class="main">
+            <div class="topbar"><h1>Live Operations Map</h1><span>Dark stores, routes, restricted zones, and drone telemetry</span></div>
+            <div id="map" class="map tall"></div>
+        </main>
+    </div>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <script src="/js/api.js"></script><script src="/js/admin.js"></script><script>setupLiveMap();</script>
+</body>
+</html>

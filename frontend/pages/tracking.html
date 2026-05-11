@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Tracking</title>
+    <link rel="stylesheet" href="/css/styles.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+</head>
+<body>
+    <div class="layout">
+        <aside class="sidebar">
+            <div class="brand">Hyderabad Drone Delivery</div>
+            <a class="nav-link" href="/pages/customer_dashboard.html">Dashboard</a>
+            <a class="nav-link" href="/pages/grocery.html">Order Grocery</a>
+            <a class="nav-link" href="/pages/send_package.html">Send Package</a>
+            <a class="nav-link" href="#" onclick="logout()">Logout</a>
+        </aside>
+        <main class="main">
+            <div class="topbar"><h1>Live Tracking</h1><span class="badge" id="status">Pending</span></div>
+            <section class="grid">
+                <div class="card metric">Drone<strong id="drone">-</strong></div>
+                <div class="card metric">ETA<strong id="eta">-</strong></div>
+                <div class="card metric">Battery<strong id="battery">-</strong></div>
+                <div class="card metric">Distance<strong id="distance">-</strong></div>
+            </section>
+            <p></p>
+            <div id="map" class="map tall"></div>
+        </main>
+    </div>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <script src="/js/api.js"></script><script src="/js/customer.js"></script><script>setupTracking();</script>
+</body>
+</html>

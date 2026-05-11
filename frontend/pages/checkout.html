@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Checkout</title>
+    <link rel="stylesheet" href="/css/styles.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+</head>
+<body>
+    <div class="layout">
+        <aside class="sidebar">
+            <div class="brand">Hyderabad Drone Delivery</div>
+            <a class="nav-link" href="/pages/customer_dashboard.html">Dashboard</a>
+            <a class="nav-link" href="/pages/grocery.html">Order Grocery</a>
+            <a class="nav-link active" href="/pages/cart.html">Cart</a>
+            <a class="nav-link" href="/pages/send_package.html">Send Package</a>
+            <a class="nav-link" href="#" onclick="logout()">Logout</a>
+        </aside>
+        <main class="main">
+            <div class="topbar"><h1>Checkout</h1><span>Search, reuse, or click a Hyderabad delivery address</span></div>
+            <div class="split">
+                <div id="map" class="map"></div>
+                <form id="checkoutForm" class="card">
+                    <h3>Delivery details</h3>
+                    <div class="summary-box">
+                        <span>Estimated dispatch distance</span>
+                        <strong id="distanceEstimate">Select an address</strong>
+                    </div>
+                    <div class="field">
+                        <label>Saved addresses</label>
+                        <div id="savedAddresses" class="address-list"></div>
+                    </div>
+                    <button type="button" id="saveAddress" class="secondary">Save selected address</button>
+                    <hr>
+                    <label class="row"><input style="width:auto" type="checkbox" name="priority"> Priority delivery</label>
+                    <p class="muted">The nearest dark store with inventory will fulfill this order.</p>
+                    <button type="submit">Place order</button>
+                </form>
+            </div>
+        </main>
+    </div>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="/js/api.js"></script><script src="/js/customer.js"></script><script>setupCheckout();</script>
+</body>
+</html>

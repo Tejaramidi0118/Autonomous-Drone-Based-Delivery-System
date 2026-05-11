@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Cart</title>
+    <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+    <div class="layout">
+        <aside class="sidebar">
+            <div class="brand">Hyderabad Drone Delivery</div>
+            <a class="nav-link" href="/pages/customer_dashboard.html">Dashboard</a>
+            <a class="nav-link" href="/pages/grocery.html">Order Grocery</a>
+            <a class="nav-link active" href="/pages/cart.html">Cart</a>
+            <a class="nav-link" href="/pages/send_package.html">Send Package</a>
+            <a class="nav-link" href="#" onclick="logout()">Logout</a>
+        </aside>
+        <main class="main">
+            <div class="topbar"><h1>Cart</h1><strong>Total: <span id="total">₹0</span></strong></div>
+            <div id="cartItems"></div>
+            <p><a href="/pages/checkout.html"><button>Checkout</button></a></p>
+        </main>
+    </div>
+    <script src="/js/api.js"></script><script src="/js/customer.js"></script><script>renderCart();</script>
+</body>
+</html>
