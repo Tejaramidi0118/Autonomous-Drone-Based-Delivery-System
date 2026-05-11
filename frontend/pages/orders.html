@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Orders | Quick Delivery Service</title>
+    <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+    <div class="layout">
+        <aside class="sidebar">
+            <div class="brand">Quick Delivery Service</div>
+            <a class="nav-link" href="/pages/customer_dashboard.html">Dashboard</a>
+            <a class="nav-link" href="/pages/grocery.html">Groceries</a>
+            <a class="nav-link" href="/pages/cart.html">Cart</a>
+            <a class="nav-link" href="/pages/send_package.html">Send Package</a>
+            <a class="nav-link active" href="/pages/orders.html">Orders</a>
+            <a class="nav-link" href="/pages/profile.html">Profile</a>
+            <a class="nav-link" href="#" onclick="logout()">Logout</a>
+        </aside>
+        <main class="main">
+            <div class="topbar">
+                <h1>Your Orders</h1>
+            </div>
+            
+            <section class="dashboard-section" style="margin-top: 0;">
+                <div class="section-head">
+                    <h2>Active Orders</h2>
+                </div>
+                <div id="activeOrdersList" class="order-strip">
+                    <div class="empty-state">Loading active orders...</div>
+                </div>
+            </section>
+
+            <section class="dashboard-section">
+                <div class="section-head">
+                    <h2>Past Orders</h2>
+                </div>
+                <div id="pastOrdersList" class="order-strip">
+                    <div class="empty-state">Loading past orders...</div>
+                </div>
+            </section>
+        </main>
+    </div>
+    <script src="/js/api.js"></script><script src="/js/customer.js"></script><script>setupOrders();</script>
+</body>
+</html>

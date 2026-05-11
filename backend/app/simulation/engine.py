@@ -13,6 +13,7 @@ class SimulationEngine:
     def __init__(self):
         self.running = False
         self.task: asyncio.Task | None = None
+        self.sim_indices: dict[int, int] = {}
 
     def start(self) -> None:
         self.running = True
@@ -43,15 +44,18 @@ class SimulationEngine:
             return
         drone = assignment.drone
         points = order.route_points or [[order.pickup_lat, order.pickup_lng], [order.dropoff_lat, order.dropoff_lng]]
-        idx = getattr(order, "_sim_index", None)
+        
+        idx = self.sim_indices.get(order.id)
         if idx is None:
             idx = _current_index(points, drone.latitude, drone.longitude)
+        
         idx = min(idx + 1, len(points) - 1)
-        order._sim_index = idx
+        self.sim_indices[order.id] = idx
 
         if random.random() < failure_probability / 20:
             order.status = "Failed"
             drone.status = "failed"
+            self.sim_indices.pop(order.id, None)
             await telemetry_manager.broadcast(order.id, _payload(order, drone, "failure"))
             return
 
@@ -66,8 +70,14 @@ class SimulationEngine:
             drone.status = "in_flight"
         else:
             order.status = "Delivered"
-            drone.status = "returning"
+            drone.status = "idle"
+            drone.current_battery = 100.0
+            if drone.dark_store:
+                drone.latitude = drone.dark_store.latitude
+                drone.longitude = drone.dark_store.longitude
+                drone.location = ST_GeomFromText(point_wkt(drone.latitude, drone.longitude), 4326)
             order.delivered_at = datetime.utcnow()
+            self.sim_indices.pop(order.id, None)
 
         telemetry = Telemetry(
             drone_id=drone.id,

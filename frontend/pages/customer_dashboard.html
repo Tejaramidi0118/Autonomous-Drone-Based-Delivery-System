@@ -3,28 +3,75 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Customer Dashboard</title>
+    <title>Quick Delivery Service</title>
     <link rel="stylesheet" href="/css/styles.css">
 </head>
 <body>
     <div class="layout">
         <aside class="sidebar">
-            <div class="brand">Hyderabad Drone Delivery</div>
+            <div class="brand">Quick Delivery Service</div>
             <a class="nav-link active" href="/pages/customer_dashboard.html">Dashboard</a>
-            <a class="nav-link" href="/pages/grocery.html">Order Grocery</a>
+            <a class="nav-link" href="/pages/grocery.html">Groceries</a>
             <a class="nav-link" href="/pages/cart.html">Cart</a>
             <a class="nav-link" href="/pages/send_package.html">Send Package</a>
+            <a class="nav-link" href="/pages/orders.html">Orders</a>
+            <a class="nav-link" href="/pages/profile.html">Profile</a>
             <a class="nav-link" href="#" onclick="logout()">Logout</a>
         </aside>
         <main class="main">
-            <div class="topbar"><h1>Customer Dashboard</h1><span data-user></span></div>
-            <section class="grid">
-                <a class="card" href="/pages/grocery.html"><h3>Order Grocery</h3><p class="muted">Dispatch from the nearest stocked dark store.</p></a>
-                <a class="card" href="/pages/send_package.html"><h3>Send Package</h3><p class="muted">Pick any Hyderabad pickup and delivery points.</p></a>
-                <a class="card" href="/pages/cart.html"><h3>Cart</h3><p class="muted">Review quantities and checkout.</p></a>
+            <section class="app-hero">
+                <div>
+                    <p class="eyebrow">Hyderabad instant delivery</p>
+                    <h1>Everything you need, dispatched by autonomous drones.</h1>
+                    <p>Groceries, daily essentials, and package drops across Hyderabad with live tracking from hub to doorstep.</p>
+                    <div class="hero-search">
+                        <span>Delivering in Hyderabad</span>
+                        <a href="/pages/checkout.html">Choose address</a>
+                    </div>
+                </div>
+                <div class="hero-panel">
+                    <strong>Live network</strong>
+                    <span id="hubCount">6 hubs</span>
+                    <span id="activeOrders">0 active orders</span>
+                </div>
+            </section>
+
+            <section class="service-grid">
+                <a class="service-card groceries" href="/pages/grocery.html">
+                    <span class="service-icon">G</span>
+                    <div>
+                        <h2>Groceries in minutes</h2>
+                        <p>Fresh produce, dairy, snacks, pantry, beverages, and home care.</p>
+                    </div>
+                    <strong>Shop now</strong>
+                </a>
+                <a class="service-card packages" href="/pages/send_package.html">
+                    <span class="service-icon">P</span>
+                    <div>
+                        <h2>Send a package</h2>
+                        <p>Pick pickup and drop locations, see distance, and track every move.</p>
+                    </div>
+                    <strong>Send now</strong>
+                </a>
+            </section>
+
+            <section class="dashboard-section">
+                <div class="section-head">
+                    <h2>Your recent orders</h2>
+                    <a href="/pages/cart.html">Open cart</a>
+                </div>
+                <div id="recentOrders" class="order-strip"></div>
+            </section>
+
+            <section class="dashboard-section">
+                <div class="section-head">
+                    <h2>Nearby delivery hubs</h2>
+                    <span class="muted">Inventory and dispatch capacity</span>
+                </div>
+                <div id="hubStrip" class="hub-strip"></div>
             </section>
         </main>
     </div>
-    <script src="/js/api.js"></script><script>requireAuth("customer");</script>
+    <script src="/js/api.js"></script><script src="/js/customer.js"></script><script>setupCustomerDashboard();</script>
 </body>
 </html>

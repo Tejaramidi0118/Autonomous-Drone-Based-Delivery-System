@@ -3,7 +3,7 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    app_name: str = "Autonomous Drone Delivery Simulation Platform"
+    app_name: str = "Quick Delivery Service"
     database_url: str = "postgresql://drone:drone@localhost:5432/drone_delivery"
     redis_url: str = "redis://localhost:6379/0"
     jwt_secret: str = "change-this-secret-in-production"

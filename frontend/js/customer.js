@@ -41,6 +41,35 @@ function renderSavedAddresses(containerId, onPick) {
     };
 }
 
+async function setupCustomerDashboard() {
+    requireAuth("customer");
+    const [hubs, orders] = await Promise.all([
+        api("/darkstores"),
+        api("/orders/list").catch(() => [])
+    ]);
+    document.querySelector("#hubCount").textContent = `${hubs.length} hubs`;
+    const active = orders.filter(o => ["Assigned", "Taking Off", "In Flight", "Delivering", "Reassigned"].includes(o.status));
+    document.querySelector("#activeOrders").textContent = `${active.length} active orders`;
+    const recentRoot = document.querySelector("#recentOrders");
+    recentRoot.innerHTML = orders.length
+        ? orders.slice(0, 4).map(order => `
+            <a class="order-card" href="/pages/tracking.html?order=${order.id}">
+                <span class="badge">${order.status}</span>
+                <strong>${order.order_type === "grocery" ? "Grocery order" : "Package delivery"} #${order.id}</strong>
+                <p>${order.distance_km} km route | ${order.eta_minutes} min ETA</p>
+            </a>
+        `).join("")
+        : `<div class="empty-state">No orders yet. Start with groceries or send your first package.</div>`;
+    document.querySelector("#hubStrip").innerHTML = hubs.map(hub => `
+        <article class="hub-card">
+            <strong>${hub.name.replace(" Hub", "")}</strong>
+            <span>${hub.drone_count} drones</span>
+            <span>${hub.active_deliveries} active</span>
+            <div class="stock-bar"><i style="width:${Math.min(100, (hub.available_stock / hub.inventory_capacity) * 100)}%"></i></div>
+        </article>
+    `).join("");
+}
+
 async function loadProducts() {
     requireAuth("customer");
     const products = await api("/products");
@@ -53,14 +82,43 @@ async function loadProducts() {
         }
     });
     const root = document.querySelector("#products");
-    root.innerHTML = unique.map(p => `
-        <article class="card product">
-            <span class="badge">${p.category}</span>
-            <h3>${p.name}</h3>
-            <p class="muted">${p.weight_kg} kg pack</p>
-            <div class="row"><strong>Rs. ${p.price}</strong><button data-add="${p.id}">Add</button></div>
-        </article>
-    `).join("");
+    const search = document.querySelector("#productSearch");
+    const tabs = document.querySelector("#categoryTabs");
+    let activeCategory = "All";
+    const categories = ["All", ...Array.from(new Set(unique.map(p => p.category))).sort()];
+
+    function renderTabs() {
+        tabs.innerHTML = categories.map(category => `<button class="category-tab ${category === activeCategory ? "active" : ""}" data-category="${category}">${category}</button>`).join("");
+    }
+
+    function renderProducts() {
+        const term = (search?.value || "").trim().toLowerCase();
+        const filtered = unique.filter(p => {
+            const categoryMatch = activeCategory === "All" || p.category === activeCategory;
+            const searchMatch = !term || p.name.toLowerCase().includes(term) || p.category.toLowerCase().includes(term);
+            return categoryMatch && searchMatch;
+        });
+        root.innerHTML = filtered.map(p => `
+            <article class="card product">
+                <div class="product-visual">${p.name.split(" ").map(part => part[0]).join("").slice(0, 2)}</div>
+                <span class="badge">${p.category}</span>
+                <h3>${p.name}</h3>
+                <p class="muted">${p.weight_kg} kg pack | In stock</p>
+                <div class="row product-action"><strong>Rs. ${p.price}</strong><button data-add="${p.id}">Add</button></div>
+            </article>
+        `).join("") || `<div class="empty-state">No products match your search.</div>`;
+    }
+
+    renderTabs();
+    renderProducts();
+    tabs.addEventListener("click", event => {
+        const category = event.target.dataset.category;
+        if (!category) return;
+        activeCategory = category;
+        renderTabs();
+        renderProducts();
+    });
+    search?.addEventListener("input", renderProducts);
     root.addEventListener("click", event => {
         const id = Number(event.target.dataset.add);
         if (!id) return;
@@ -285,4 +343,39 @@ function updateTracking(data) {
     document.querySelector("#drone").textContent = data.drone_id || "Pending assignment";
     const distance = document.querySelector("#distance");
     if (distance && data.distance_km !== undefined) distance.textContent = `${data.distance_km} km`;
+}
+
+async function setupOrders() {
+    requireAuth("customer");
+    const orders = await api("/orders/list").catch(() => []);
+    
+    const activeOrders = orders.filter(o => ["Assigned", "Taking Off", "In Flight", "Delivering", "Reassigned"].includes(o.status));
+    const pastOrders = orders.filter(o => ["Delivered", "Failed", "Cancelled"].includes(o.status) || o.status === "Pending");
+    
+    const activeRoot = document.querySelector("#activeOrdersList");
+    const pastRoot = document.querySelector("#pastOrdersList");
+    
+    activeRoot.innerHTML = activeOrders.length
+        ? activeOrders.map(order => `
+            <div class="order-card" style="display: flex; flex-direction: column; justify-content: space-between;">
+                <div>
+                    <span class="badge" style="margin-bottom: 8px;">${order.status}</span>
+                    <strong>${order.order_type === "grocery" ? "Grocery order" : "Package delivery"} #${order.id}</strong>
+                    <p>${order.distance_km} km route | ${order.eta_minutes} min ETA</p>
+                </div>
+                <a href="/pages/tracking.html?order=${order.id}" class="nav-link active" style="margin-top: 16px; text-align: center; justify-content: center;">Track Order</a>
+            </div>
+        `).join("")
+        : `<div class="empty-state">You have no active orders.</div>`;
+        
+    pastRoot.innerHTML = pastOrders.length
+        ? pastOrders.map(order => `
+            <div class="order-card">
+                <span class="badge ${order.status === 'Failed' ? 'status-danger' : ''}" style="margin-bottom: 8px;">${order.status}</span>
+                <strong>${order.order_type === "grocery" ? "Grocery order" : "Package delivery"} #${order.id}</strong>
+                <p>${new Date(order.created_at).toLocaleDateString()}</p>
+                <p>${order.distance_km} km route</p>
+            </div>
+        `).join("")
+        : `<div class="empty-state">You have no past orders.</div>`;
 }

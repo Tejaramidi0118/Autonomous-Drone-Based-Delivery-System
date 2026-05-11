@@ -11,7 +11,7 @@ from app.simulation.engine import simulation_engine
 from app.websocket.manager import sio, telemetry_manager
 
 
-app = FastAPI(title="Autonomous Drone Delivery Simulation Platform")
+app = FastAPI(title="Quick Delivery Service")
 
 app.add_middleware(
     CORSMiddleware,
@@ -50,9 +50,28 @@ def startup() -> None:
     db = SessionLocal()
     try:
         seed_database(db)
+        
+        # Reset stuck drones from previous runs
+        from app.models import Drone, Order
+        for d in db.query(Drone).all():
+            d.status = "idle"
+            d.current_battery = 100.0
+            if d.dark_store:
+                d.latitude = d.dark_store.latitude
+                d.longitude = d.dark_store.longitude
+                from app.utils.geo import point_wkt
+                from geoalchemy2.functions import ST_GeomFromText
+                d.location = ST_GeomFromText(point_wkt(d.latitude, d.longitude), 4326)
+        
+        # Mark hanging orders as failed
+        for o in db.query(Order).filter(Order.status.in_(["Assigned", "Taking Off", "In Flight"])).all():
+            o.status = "Failed"
+            
+        db.commit()
     finally:
         db.close()
     train_model()
+    simulation_engine.start()
 
 
 @app.on_event("shutdown")

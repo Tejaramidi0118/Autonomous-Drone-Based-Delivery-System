@@ -17,13 +17,38 @@ DARK_STORES = [
 
 PRODUCTS = [
     ("Fresh Milk", "Dairy", 68, 1.0),
+    ("Greek Yogurt", "Dairy", 95, 0.5),
+    ("Cheese Slices", "Dairy", 140, 0.3),
     ("Bananas", "Produce", 55, 1.2),
+    ("Tomatoes", "Produce", 42, 1.0),
+    ("Potatoes", "Produce", 38, 1.0),
+    ("Onions", "Produce", 36, 1.0),
+    ("Coriander Bunch", "Produce", 18, 0.1),
     ("Basmati Rice", "Staples", 210, 2.0),
+    ("Toor Dal", "Staples", 165, 1.0),
+    ("Atta", "Staples", 235, 5.0),
+    ("Sunflower Oil", "Staples", 155, 1.0),
     ("Bread", "Bakery", 45, 0.4),
+    ("Brown Bread", "Bakery", 60, 0.45),
+    ("Croissant Pack", "Bakery", 120, 0.35),
     ("Eggs Pack", "Dairy", 92, 0.7),
     ("Instant Coffee", "Pantry", 180, 0.2),
+    ("Tea Powder", "Pantry", 145, 0.25),
+    ("Peanut Butter", "Pantry", 220, 0.5),
+    ("Cornflakes", "Breakfast", 185, 0.6),
+    ("Oats", "Breakfast", 150, 1.0),
     ("Apples", "Produce", 160, 1.0),
     ("Paneer", "Dairy", 120, 0.5),
+    ("Dark Chocolate", "Snacks", 110, 0.1),
+    ("Potato Chips", "Snacks", 40, 0.08),
+    ("Cookies", "Snacks", 75, 0.2),
+    ("Orange Juice", "Beverages", 115, 1.0),
+    ("Mineral Water", "Beverages", 30, 1.0),
+    ("Energy Drink", "Beverages", 95, 0.3),
+    ("Toothpaste", "Personal Care", 85, 0.15),
+    ("Shampoo", "Personal Care", 190, 0.35),
+    ("Dishwash Liquid", "Home Care", 125, 0.7),
+    ("Laundry Detergent", "Home Care", 260, 1.0),
 ]
 
 
@@ -69,8 +94,10 @@ def seed_database(db: Session) -> None:
                     dark_store_id=store.id,
                     location=ST_GeomFromText(point_wkt(store.latitude, store.longitude), 4326),
                 ))
-            for product in PRODUCTS:
-                db.add(Product(name=product[0], category=product[1], price=product[2], weight_kg=product[3], stock=240, dark_store_id=store.id))
+            _ensure_products_for_store(db, store.id)
+    else:
+        for store in db.query(DarkStore).all():
+            _ensure_products_for_store(db, store.id)
 
     if db.query(AirspaceZone).count() == 0:
         for name, zone_type, coords in ZONES:
@@ -79,3 +106,13 @@ def seed_database(db: Session) -> None:
     if db.query(SimulationConfig).count() == 0:
         db.add(SimulationConfig(running=False, failure_probability=0.05, telemetry_interval=2, max_orders=30))
     db.commit()
+
+
+def _ensure_products_for_store(db: Session, store_id: int) -> None:
+    existing = {
+        p.name
+        for p in db.query(Product).filter(Product.dark_store_id == store_id).all()
+    }
+    for name, category, price, weight in PRODUCTS:
+        if name not in existing:
+            db.add(Product(name=name, category=category, price=price, weight_kg=weight, stock=240, dark_store_id=store_id))
