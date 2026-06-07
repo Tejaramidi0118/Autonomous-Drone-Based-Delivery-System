@@ -6,7 +6,7 @@ from geoalchemy2.functions import ST_GeomFromText, ST_Intersects
 from app.ml.battery_model import predict_battery_usage
 from app.models import AirspaceZone, Assignment, DarkStore, Drone, Order, Product
 from app.optimizer.assignment import assign_best_drone
-from app.optimizer.path_planner import AStarPlanner
+from app.optimizer.path_planner import ThetaStarPlanner
 from app.schemas.common import OrderCreate
 from app.services.weather import get_weather
 from app.utils.geo import haversine_km, is_in_hyderabad, linestring_wkt
@@ -26,7 +26,7 @@ async def create_order(db: Session, user_id: int, payload: OrderCreate) -> Order
         raise HTTPException(status_code=400, detail="Package pickup must be within Hyderabad")
 
     zones = db.query(AirspaceZone).filter(AirspaceZone.active.is_(True)).all()
-    route_points = AStarPlanner([z.coordinates for z in zones]).plan((pickup_lat, pickup_lng), (payload.dropoff_lat, payload.dropoff_lng))
+    route_points = ThetaStarPlanner([z.coordinates for z in zones]).plan((pickup_lat, pickup_lng), (payload.dropoff_lat, payload.dropoff_lng))
     distance_km = _route_distance(route_points)
     weather = await get_weather(payload.dropoff_lat, payload.dropoff_lng)
     battery = predict_battery_usage(distance_km, payload.payload_weight, weather["wind_speed"], weather["humidity"], weather["temperature"])
