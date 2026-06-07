@@ -922,3 +922,28 @@ canvas.chart {
     .topbar h1 { font-size: 24px; }
     .map.tall { height: 400px; }
 }
+
+.simulation-layout {
+    display: flex;
+    gap: 20px;
+    height: calc(100vh - 140px);
+}
+
+.sim-panel {
+    width: 400px;
+    flex-shrink: 0;
+}
+
+.sim-map-card {
+    flex: 1;
+    border-radius: 20px;
+    overflow: hidden;
+    background: white;
+    border: 1px solid #e5e7eb;
+}
+
+#simulationMap {
+    width: 100%;
+    height: 100%;
+    min-height: 700px;
+}

@@ -108,24 +108,183 @@ async function setupAirspace() {
 
 async function setupSimulation() {
     requireAuth("admin");
+
+    // Initialize simulation map
+    const map = hyderabadMap("simulationMap", 11);
+
+    // Draw hubs + no fly zones
+    await drawHubs(map);
+    await drawZones(map);
+
+    // Store generated routes
+    let simulationLayers = [];
+
+    // Generate random Hyderabad point
+    function randomHyderabadPoint() {
+        const minLat = 17.25;
+        const maxLat = 17.55;
+
+        const minLng = 78.20;
+        const maxLng = 78.65;
+
+        return [
+            minLat + Math.random() * (maxLat - minLat),
+            minLng + Math.random() * (maxLng - minLng)
+        ];
+    }
+
+    // Simulation base point (Hyderabad center for now)
+    const basePoint = [17.3850, 78.4867];
+
+    // Load backend config
     const config = await api("/simulation/config");
+
     const form = document.querySelector("#simForm");
-    form.failure_probability.value = config.failure_probability;
-    form.telemetry_interval.value = config.telemetry_interval;
-    form.max_orders.value = config.max_orders;
-    document.querySelector("#simState").textContent = config.running ? "Running" : "Stopped";
-    document.querySelector("#startSim").onclick = async () => {
-        await api("/simulation/start", { method: "POST", body: JSON.stringify(Object.fromEntries(new FormData(form))) });
-        toast("Simulation started");
-        document.querySelector("#simState").textContent = "Running";
+
+    form.failure_probability.value =
+        config.failure_probability;
+
+    form.telemetry_interval.value =
+        config.telemetry_interval;
+
+    form.max_orders.value =
+        config.max_orders;
+
+    document.querySelector("#simState")
+        .textContent =
+        config.running
+            ? "Running"
+            : "Stopped";
+
+    // START SIMULATION
+    document.querySelector("#startSim")
+        .onclick = async () => {
+
+        try {
+
+            // Clear previous simulation routes
+            simulationLayers.forEach(
+                layer => map.removeLayer(layer)
+            );
+
+            simulationLayers = [];
+
+            // Send config to backend
+            await api(
+                "/simulation/start",
+                {
+                    method: "POST",
+                    body: JSON.stringify(
+                        Object.fromEntries(
+                            new FormData(form)
+                        )
+                    )
+                }
+            );
+
+            const orderCount =
+                Number(
+                    form.max_orders.value
+                );
+
+            // Generate X random orders
+            for (
+                let i = 0;
+                i < orderCount;
+                i++
+            ) {
+
+                const destination =
+                    randomHyderabadPoint();
+
+                // Draw destination point
+                const marker =
+                    L.circleMarker(
+                        destination,
+                        {
+                            radius: 5,
+                            color: "#21a67a",
+                            fillOpacity: 0.8
+                        }
+                    )
+                    .addTo(map)
+                    .bindPopup(
+                        `Order ${i + 1}`
+                    );
+
+                simulationLayers.push(marker);
+
+                // Draw simulated route
+                const route =
+                    L.polyline(
+                        [
+                            basePoint,
+                            destination
+                        ],
+                        {
+                            color: "#2f6fed",
+                            weight: 3,
+                            opacity: 0.6
+                        }
+                    ).addTo(map);
+
+                simulationLayers.push(route);
+            }
+
+            toast("Simulation started");
+
+            document.querySelector("#simState")
+                .textContent =
+                "Running";
+
+        } catch (error) {
+
+            console.error(error);
+
+            toast(
+                "Failed to start simulation"
+            );
+        }
     };
-    document.querySelector("#stopSim").onclick = async () => {
-        await api("/simulation/stop", { method: "POST" });
-        toast("Simulation stopped");
-        document.querySelector("#simState").textContent = "Stopped";
+
+    // STOP SIMULATION
+    document.querySelector("#stopSim")
+        .onclick = async () => {
+
+        try {
+
+            await api(
+                "/simulation/stop",
+                {
+                    method: "POST"
+                }
+            );
+
+            // Remove all simulation routes
+            simulationLayers.forEach(
+                layer => map.removeLayer(layer)
+            );
+
+            simulationLayers = [];
+
+            toast(
+                "Simulation stopped"
+            );
+
+            document.querySelector("#simState")
+                .textContent =
+                "Stopped";
+
+        } catch (error) {
+
+            console.error(error);
+
+            toast(
+                "Failed to stop simulation"
+            );
+        }
     };
 }
-
 async function setupLiveMap() {
     requireAuth("admin");
     const map = hyderabadMap("map", 11);

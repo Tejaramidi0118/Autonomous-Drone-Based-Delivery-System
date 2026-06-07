@@ -2,31 +2,156 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1">
+
     <title>Simulation</title>
-    <link rel="stylesheet" href="/css/styles.css">
+
+    <!-- App CSS -->
+    <link rel="stylesheet"
+          href="/css/styles.css">
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet"
+          href="/css/leaflet.css"/>
 </head>
+
 <body>
-    <div class="layout">
-        <aside class="sidebar">
-            <div class="brand">Quick Delivery Ops</div>
-            <a class="nav-link" href="/pages/admin_dashboard.html">Dashboard</a>
-            <a class="nav-link" href="/pages/drones.html">Drones</a>
-            <a class="nav-link" href="/pages/airspace.html">Airspace</a>
-            <a class="nav-link active" href="/pages/simulation.html">Simulation</a>
-            <a class="nav-link" href="/pages/live_map.html">Live Map</a>
-            <a class="nav-link" href="#" onclick="logout()">Logout</a>
-        </aside>
-        <main class="main">
-            <div class="topbar"><h1>Simulation Control</h1><span class="badge" id="simState">-</span></div>
-            <form id="simForm" class="form-card">
-                <div class="field"><label>Failure probability</label><input name="failure_probability" type="number" step=".01" min="0" max="1"></div>
-                <div class="field"><label>Telemetry interval seconds</label><input name="telemetry_interval" type="number" min="1" max="15"></div>
-                <div class="field"><label>Max orders</label><input name="max_orders" type="number" min="1"></div>
-                <div class="row"><button type="button" id="startSim">Start simulation</button><button type="button" id="stopSim" class="danger">Stop simulation</button></div>
+
+<div class="layout">
+
+    <aside class="sidebar">
+        <div class="brand">
+            Quick Delivery Ops
+        </div>
+
+        <a class="nav-link"
+           href="/pages/admin_dashboard.html">
+            Dashboard
+        </a>
+
+        <a class="nav-link"
+           href="/pages/drones.html">
+            Drones
+        </a>
+
+        <a class="nav-link"
+           href="/pages/airspace.html">
+            Airspace
+        </a>
+
+        <a class="nav-link active"
+           href="/pages/simulation.html">
+            Simulation
+        </a>
+
+        <a class="nav-link"
+           href="/pages/live_map.html">
+            Live Map
+        </a>
+
+        <a class="nav-link"
+           href="#"
+           onclick="logout()">
+            Logout
+        </a>
+    </aside>
+
+    <main class="main">
+
+        <div class="topbar">
+            <h1>Simulation Control</h1>
+            <span class="badge"
+                  id="simState">
+                -
+            </span>
+        </div>
+
+        <div class="simulation-layout">
+
+            <!-- LEFT CONTROL PANEL -->
+            <form id="simForm"
+                  class="form-card sim-panel">
+
+                <div class="field">
+                    <label>
+                        Failure probability
+                    </label>
+
+                    <input
+                        name="failure_probability"
+                        type="number"
+                        step=".01"
+                        min="0"
+                        max="1">
+                </div>
+
+                <div class="field">
+                    <label>
+                        Telemetry interval seconds
+                    </label>
+
+                    <input
+                        name="telemetry_interval"
+                        type="number"
+                        min="1"
+                        max="15">
+                </div>
+
+                <div class="field">
+                    <label>
+                        Max orders
+                    </label>
+
+                    <input
+                        name="max_orders"
+                        type="number"
+                        min="1">
+                </div>
+
+                <div class="row">
+
+                    <button
+                        type="button"
+                        id="startSim">
+
+                        Start simulation
+                    </button>
+
+                    <button
+                        type="button"
+                        id="stopSim"
+                        class="danger">
+
+                        Stop simulation
+                    </button>
+
+                </div>
+
             </form>
-        </main>
-    </div>
-    <script src="/js/api.js"></script><script src="/js/admin.js"></script><script>setupSimulation();</script>
+
+            <!-- RIGHT MAP -->
+            <div class="sim-map-card">
+                <div id="simulationMap"></div>
+            </div>
+
+        </div>
+
+    </main>
+
+</div>
+
+<!-- Leaflet JS -->
+<script src="/js/leaflet.js"></script>
+
+<!-- Existing JS -->
+<script src="/js/api.js"></script>
+<script src="/js/admin.js"></script>
+
+<!-- Start Simulation Setup -->
+<script>
+    setupSimulation();
+</script>
+
 </body>
 </html>
