@@ -76,14 +76,18 @@
                 <div class="field">
                     <label>
                         Failure probability
+                        <small style="display:block;font-weight:400;color:#64748b;margin-top:2px">
+                            Chance a drone fails over full flight (0.002 = 97% survival rate, 0.05 = 50% survival rate)
+                        </small>
                     </label>
-
                     <input
                         name="failure_probability"
                         type="number"
-                        step=".01"
+                        step=".001"
                         min="0"
-                        max="1">
+                        max="0.5"
+                        value="0.002"
+                        placeholder="0.002">
                 </div>
 
                 <div class="field">

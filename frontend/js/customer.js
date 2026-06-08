@@ -312,37 +312,112 @@ async function setupTracking() {
     const map = hyderabadMap("map", 13);
     await drawHubs(map);
     await drawZones(map);
-    L.polyline(order.route_points, { color: "#2f6fed", weight: 4 }).addTo(map);
-    L.marker([order.dropoff_lat, order.dropoff_lng]).addTo(map).bindPopup("Delivery");
-    const marker = L.marker([order.pickup_lat, order.pickup_lng], { icon: droneIcon() }).addTo(map).bindPopup("Drone");
-    map.fitBounds(order.route_points);
+
+    // Draw planned route
+    if (order.route_points && order.route_points.length > 1) {
+        L.polyline(order.route_points, { color: "#2f6fed", weight: 3, opacity: 0.6 }).addTo(map);
+    }
+
+    // Dropoff marker
+    L.marker([order.dropoff_lat, order.dropoff_lng], {
+        icon: L.divIcon({ className: "", html: `<div style="background:#e84040;color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:bold;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.3)">D</div>`, iconSize:[22,22], iconAnchor:[11,11] })
+    }).addTo(map).bindPopup("Delivery point");
+
+    // Drone marker — start at pickup or first known position
+    const startPos = [order.pickup_lat, order.pickup_lng];
+    const marker = L.marker(startPos, { icon: droneIcon(0) }).addTo(map).bindPopup(`Drone ${order.drone_id}`);
+    if (order.route_points && order.route_points.length > 1) {
+        map.fitBounds(order.route_points, { padding: [40, 40] });
+    }
     updateTracking(order);
+
+    // Travelled path line — grows as drone moves
+    const travelPath = L.polyline([], { color: "#0f6e56", weight: 2.5, opacity: 0.9 }).addTo(map);
+    const visitedCoords = [];
+
+    // Local ETA countdown ticker — decrements every second between WebSocket ticks
+    let localEta = parseFloat(order.eta_minutes) || 0;
+    let lastEtaUpdate = Date.now();
+    const etaEl = document.querySelector("#eta");
+    const etaTicker = setInterval(() => {
+        const elapsed = (Date.now() - lastEtaUpdate) / 60000; // minutes elapsed
+        localEta = Math.max(0, localEta - elapsed);
+        lastEtaUpdate = Date.now();
+        if (etaEl && localEta > 0) {
+            etaEl.textContent = `${localEta.toFixed(1)} min`;
+        }
+    }, 1000);
+
+    function handleTelemetry(payload) {
+        if (String(payload.order_id) !== String(id)) return;
+
+        // Physics-speed animation — uses real speed from engine
+        const speedKmh = payload.speed_kmh || payload.speed || 38;
+        const heading = payload.latitude && marker.getLatLng()
+            ? Math.atan2(
+                payload.longitude - marker.getLatLng().lng,
+                payload.latitude  - marker.getLatLng().lat)
+            : 0;
+        animateMarker(marker, [payload.latitude, payload.longitude], speedKmh, heading);
+
+        // Grow travelled path
+        visitedCoords.push([payload.latitude, payload.longitude]);
+        travelPath.setLatLngs(visitedCoords);
+
+        // Reset local ETA countdown to server value
+        if (payload.eta_minutes !== undefined) {
+            localEta = parseFloat(payload.eta_minutes);
+            lastEtaUpdate = Date.now();
+        }
+
+        updateTracking(payload);
+
+        // Stop ticker on completion
+        if (payload.status === "Delivered" || payload.status === "Failed") {
+            clearInterval(etaTicker);
+        }
+    }
 
     if (window.io) {
         const socket = io(SOCKET_BASE, { path: "/socket.io" });
         socket.emit("subscribe", { order_id: id });
-        socket.on("telemetry", payload => {
-            if (String(payload.order_id) !== String(id)) return;
-            animateMarker(marker, [payload.latitude, payload.longitude]);
-            updateTracking(payload);
-        });
+        socket.on("telemetry", handleTelemetry);
     } else {
         const ws = new WebSocket(`${WS_BASE}/ws/telemetry/${id}`);
-        ws.onmessage = event => {
-            const payload = JSON.parse(event.data);
-            animateMarker(marker, [payload.latitude, payload.longitude]);
-            updateTracking(payload);
-        };
+        ws.onmessage = event => handleTelemetry(JSON.parse(event.data));
     }
 }
 
 function updateTracking(data) {
-    document.querySelector("#status").textContent = data.status;
-    document.querySelector("#battery").textContent = `${data.battery ?? data.predicted_battery_usage}%`;
-    document.querySelector("#eta").textContent = `${data.eta_minutes} min`;
-    document.querySelector("#drone").textContent = data.drone_id || "Pending assignment";
+    const status = document.querySelector("#status");
+    if (status) status.textContent = data.status || "—";
+
+    const battery = document.querySelector("#battery");
+    if (battery) {
+        const pct = data.battery ?? data.predicted_battery_usage ?? 0;
+        const color = pct > 50 ? "#2e7d32" : pct > 25 ? "#e65100" : "#c62828";
+        battery.innerHTML = `<span style="color:${color}">${parseFloat(pct).toFixed(1)}%</span>`;
+    }
+
+    // ETA: only update the DOM here on initial load; live countdown is handled by ticker
+    const etaEl = document.querySelector("#eta");
+    if (etaEl && data.eta_minutes !== undefined && !window._etaTickerRunning) {
+        etaEl.textContent = `${parseFloat(data.eta_minutes).toFixed(1)} min`;
+    }
+
+    const drone = document.querySelector("#drone");
+    if (drone) drone.textContent = data.drone_id || "Pending";
+
     const distance = document.querySelector("#distance");
-    if (distance && data.distance_km !== undefined) distance.textContent = `${data.distance_km} km`;
+    if (distance && data.distance_km !== undefined) {
+        distance.textContent = `${parseFloat(data.distance_km).toFixed(2)} km`;
+    }
+
+    // Show speed if element exists (optional enhancement)
+    const speed = document.querySelector("#speed");
+    if (speed && (data.speed_kmh || data.speed)) {
+        speed.textContent = `${parseFloat(data.speed_kmh || data.speed).toFixed(0)} km/h`;
+    }
 }
 
 async function setupOrders() {

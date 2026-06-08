@@ -3,36 +3,392 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Tracking</title>
+    <title>Live Tracking — QDS</title>
     <link rel="stylesheet" href="/css/styles.css">
     <link rel="stylesheet" href="/css/leaflet.css">
+    <style>
+        /* ── Metric cards ───────────────────────────────────── */
+        .metrics { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:16px; }
+        @media(max-width:700px){ .metrics{ grid-template-columns:repeat(2,1fr); } }
+        .metric-card {
+            background: linear-gradient(135deg,#1d4ed8,#1e3a8a);
+            border-radius:14px; padding:16px 20px; color:#fff;
+            position:relative; overflow:hidden; min-height:90px;
+        }
+        .metric-card::after {
+            content:''; position:absolute; right:-16px; bottom:-16px;
+            width:80px; height:80px; background:rgba(255,255,255,.1); border-radius:50%;
+        }
+        .metric-card .label { font-size:13px; opacity:.8; font-weight:500; }
+        .metric-card .value { font-size:32px; font-weight:800; margin-top:6px; line-height:1; }
+        .metric-card .value.bat-ok    { color:#86efac; }
+        .metric-card .value.bat-warn  { color:#fde68a; }
+        .metric-card .value.bat-crit  { color:#fca5a5; }
+
+        /* ── Status badge ───────────────────────────────────── */
+        .status-pill {
+            display:inline-flex; align-items:center; gap:6px;
+            padding:5px 14px; border-radius:999px; font-size:13px; font-weight:600;
+            background:#dbeafe; color:#1e40af;
+        }
+        .status-pill.in-flight  { background:#dcfce7; color:#166534; }
+        .status-pill.delivered  { background:#d1fae5; color:#065f46; }
+        .status-pill.failed     { background:#fee2e2; color:#991b1b; }
+        .status-pill.taking-off { background:#fef3c7; color:#92400e; }
+        .status-pill .dot {
+            width:8px; height:8px; border-radius:50%; background:currentColor;
+            animation: pulse 1.4s ease-in-out infinite;
+        }
+        .status-pill.delivered .dot,
+        .status-pill.failed    .dot { animation:none; }
+        @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(1.3)} }
+
+        /* ── Map ────────────────────────────────────────────── */
+        #map { height:calc(100vh - 260px); min-height:380px; border-radius:14px;
+               border:1px solid #e2e8f0; overflow:hidden; }
+
+        /* ── Drone marker (pure CSS — no SVG clip issues) ──── */
+        .qds-drone {
+            width:32px; height:32px;
+            background:#2563eb;
+            border-radius:50%;
+            border:3px solid #fff;
+            box-shadow:0 2px 8px rgba(37,99,235,.55);
+            display:flex; align-items:center; justify-content:center;
+            font-size:14px; color:#fff; font-weight:700;
+            transition:transform .15s ease;
+            cursor:pointer;
+        }
+        .qds-drone.moving { box-shadow:0 2px 16px rgba(37,99,235,.8); }
+
+        /* ── Delivery marker ────────────────────────────────── */
+        .qds-dropoff {
+            width:26px; height:26px;
+            background:#dc2626; border-radius:50%;
+            border:3px solid #fff; box-shadow:0 2px 8px rgba(220,38,38,.5);
+            display:flex; align-items:center; justify-content:center;
+            font-size:12px; color:#fff; font-weight:700;
+        }
+
+        /* ── Event log ──────────────────────────────────────── */
+        #eventLog {
+            margin-top:12px; background:#f8fafc; border:1px solid #e2e8f0;
+            border-radius:10px; padding:10px 14px; height:72px; overflow-y:auto;
+            font-family:monospace; font-size:12px; color:#475569;
+        }
+        .log-line { line-height:1.7; }
+        .log-line.ok   { color:#166534; }
+        .log-line.warn { color:#92400e; }
+        .log-line.err  { color:#991b1b; }
+    </style>
 </head>
 <body>
-    <div class="layout">
-        <aside class="sidebar">
-            <div class="brand">Quick Delivery Service</div>
-            <a class="nav-link" href="/pages/customer_dashboard.html">Dashboard</a>
-            <a class="nav-link" href="/pages/grocery.html">Groceries</a>
-            <a class="nav-link" href="/pages/cart.html">Cart</a>
-            <a class="nav-link" href="/pages/send_package.html">Send Package</a>
-            <a class="nav-link" href="/pages/orders.html">Orders</a>
-            <a class="nav-link" href="/pages/profile.html">Profile</a>
-            <a class="nav-link" href="#" onclick="logout()">Logout</a>
-        </aside>
-        <main class="main">
-            <div class="topbar"><h1>Live Tracking</h1><span class="badge" id="status">Pending</span></div>
-            <section class="grid">
-                <div class="card metric">Drone<strong id="drone">-</strong></div>
-                <div class="card metric">ETA<strong id="eta">-</strong></div>
-                <div class="card metric">Battery<strong id="battery">-</strong></div>
-                <div class="card metric">Distance<strong id="distance">-</strong></div>
-            </section>
-            <p></p>
-            <div id="map" class="map tall"></div>
-        </main>
-    </div>
-    <script src="/js/leaflet.js"></script>
-    <script src="/js/socket.io.min.js"></script>
-    <script src="/js/api.js"></script><script src="/js/customer.js"></script><script>setupTracking();</script>
+<div class="layout">
+    <aside class="sidebar">
+        <div class="brand">Quick Delivery<br>Service</div>
+        <a class="nav-link" href="/pages/customer_dashboard.html">Dashboard</a>
+        <a class="nav-link" href="/pages/grocery.html">Groceries</a>
+        <a class="nav-link" href="/pages/cart.html">Cart</a>
+        <a class="nav-link" href="/pages/send_package.html">Send Package</a>
+        <a class="nav-link" href="/pages/orders.html">Orders</a>
+        <a class="nav-link" href="/pages/profile.html">Profile</a>
+        <a class="nav-link" href="#" onclick="logout()">Logout</a>
+    </aside>
+
+    <main class="main">
+        <div class="topbar" style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+            <h1 style="margin:0">Live Tracking</h1>
+            <span class="status-pill" id="statusPill">
+                <span class="dot"></span>
+                <span id="statusText">Loading…</span>
+            </span>
+        </div>
+
+        <!-- Metric cards -->
+        <div class="metrics">
+            <div class="metric-card">
+                <div class="label">Drone</div>
+                <div class="value" id="mDrone">—</div>
+            </div>
+            <div class="metric-card">
+                <div class="label">ETA</div>
+                <div class="value" id="mEta">—</div>
+            </div>
+            <div class="metric-card">
+                <div class="label">Battery</div>
+                <div class="value" id="mBattery">—</div>
+            </div>
+            <div class="metric-card">
+                <div class="label">Distance</div>
+                <div class="value" id="mDistance">—</div>
+            </div>
+        </div>
+
+        <!-- Map -->
+        <div id="map"></div>
+
+        <!-- Event log -->
+        <div id="eventLog"><span class="log-line">Connecting…</span></div>
+    </main>
+</div>
+
+<script src="/js/leaflet.js"></script>
+<script src="/js/socket.io.min.js"></script>
+<script src="/js/api.js"></script>
+
+<script>
+// ────────────────────────────────────────────────────────────
+//  QDS Live Tracking — self-contained, no external state
+// ────────────────────────────────────────────────────────────
+(async function () {
+    requireAuth();
+
+    const orderId  = new URLSearchParams(location.search).get("order");
+    if (!orderId) { location.href = "/pages/orders.html"; return; }
+
+    // ── DOM refs ─────────────────────────────────────────────
+    const mDrone    = document.getElementById("mDrone");
+    const mEta      = document.getElementById("mEta");
+    const mBattery  = document.getElementById("mBattery");
+    const mDistance = document.getElementById("mDistance");
+    const statusPill = document.getElementById("statusPill");
+    const statusText = document.getElementById("statusText");
+    const logEl     = document.getElementById("eventLog");
+
+    // ── State ────────────────────────────────────────────────
+    let etaValue       = null;   // minutes — live countdown source
+    let etaLastSync    = null;   // Date.now() when server last gave us eta
+    let tickerInterval = null;
+    let droneMarker    = null;
+    let travelLine     = null;
+    let travelCoords   = [];
+    let animFrame      = null;
+    let isFinished     = false;
+
+    // ── Logging ──────────────────────────────────────────────
+    function addLog(msg, cls = "") {
+        const line = document.createElement("div");
+        line.className = "log-line" + (cls ? " " + cls : "");
+        const ts = new Date().toTimeString().slice(0, 8);
+        line.textContent = `[${ts}] ${msg}`;
+        logEl.appendChild(line);
+        logEl.scrollTop = logEl.scrollHeight;
+        while (logEl.children.length > 30) logEl.removeChild(logEl.firstChild);
+    }
+
+    // ── Map setup ────────────────────────────────────────────
+    const map = L.map("map").setView([17.4065, 78.4772], 14);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 19, attribution: "© OpenStreetMap"
+    }).addTo(map);
+
+    // ── Drone marker factory (pure CSS div — no SVG clip issues) ──
+    function makeDroneIcon(moving = false) {
+        return L.divIcon({
+            className: "",   // IMPORTANT: empty class avoids Leaflet default styling
+            html: `<div class="qds-drone${moving ? " moving" : ""}">✈</div>`,
+            iconSize:   [32, 32],
+            iconAnchor: [16, 16],
+            popupAnchor:[0, -18]
+        });
+    }
+
+    function makeDropoffIcon() {
+        return L.divIcon({
+            className: "",
+            html: `<div class="qds-dropoff">📦</div>`,
+            iconSize:   [26, 26],
+            iconAnchor: [13, 13]
+        });
+    }
+
+    // ── ETA live countdown ticker ─────────────────────────────
+    // Runs every second, subtracts elapsed time since last server sync.
+    // Resets to server value every WebSocket tick.
+    function startTicker() {
+        if (tickerInterval) return;
+        tickerInterval = setInterval(() => {
+            if (etaValue === null || etaLastSync === null) return;
+            const elapsedMin = (Date.now() - etaLastSync) / 60000;
+            const live = Math.max(0, etaValue - elapsedMin);
+            mEta.textContent = live.toFixed(1) + " min";
+        }, 1000);
+    }
+
+    function stopTicker() {
+        clearInterval(tickerInterval);
+        tickerInterval = null;
+    }
+
+    // ── Status pill styling ───────────────────────────────────
+    const STATUS_CLASS = {
+        "In Flight":  "in-flight",
+        "Delivering": "in-flight",
+        "Taking Off": "taking-off",
+        "Delivered":  "delivered",
+        "Failed":     "failed",
+    };
+
+    function setStatus(s) {
+        statusText.textContent = s;
+        statusPill.className = "status-pill " + (STATUS_CLASS[s] || "");
+    }
+
+    // ── Battery color ─────────────────────────────────────────
+    function setBattery(pct) {
+        const v = parseFloat(pct);
+        mBattery.textContent = v.toFixed(1) + "%";
+        mBattery.className   = "value " +
+            (v > 50 ? "bat-ok" : v > 25 ? "bat-warn" : "bat-crit");
+    }
+
+    // ── Smooth LERP animation ─────────────────────────────────
+    function animateTo(fromLatLng, toLatLng, speedKmh) {
+        if (animFrame) cancelAnimationFrame(animFrame);
+
+        const distM = map.distance(fromLatLng, toLatLng);
+        const speedMs = Math.max(3, (speedKmh || 38) / 3.6);
+        const ms = Math.min(2500, Math.max(300, (distM / speedMs) * 1000));
+
+        const start = performance.now();
+        function eio(t) { return t<.5 ? 2*t*t : 1-Math.pow(-2*t+2,2)/2; }
+
+        function step(now) {
+            const t   = eio(Math.min(1, (now - start) / ms));
+            const lat = fromLatLng.lat + (toLatLng.lat - fromLatLng.lat) * t;
+            const lng = fromLatLng.lng + (toLatLng.lng - fromLatLng.lng) * t;
+            droneMarker.setLatLng([lat, lng]);
+            droneMarker.setIcon(makeDroneIcon(true));
+            if (t < 1) { animFrame = requestAnimationFrame(step); }
+            else {
+                droneMarker.setLatLng(toLatLng);
+                droneMarker.setIcon(makeDroneIcon(false));
+            }
+        }
+        animFrame = requestAnimationFrame(step);
+    }
+
+    // ── Load initial order data ───────────────────────────────
+    let order;
+    try {
+        order = await api(`/orders/status/${orderId}`);
+    } catch (e) {
+        addLog("Failed to load order: " + e.message, "err");
+        return;
+    }
+
+    addLog(`Order #${orderId} loaded — status: ${order.status}`, "ok");
+
+    // Draw planned route
+    const routePts = order.route_points || [];
+    if (routePts.length > 1) {
+        L.polyline(routePts, { color: "#2563eb", weight: 3, opacity: 0.45, dashArray: "8 6" }).addTo(map);
+        map.fitBounds(routePts, { padding: [50, 50] });
+    } else {
+        map.setView([order.pickup_lat, order.pickup_lng], 14);
+    }
+
+    // Dropoff marker
+    if (order.dropoff_lat) {
+        L.marker([order.dropoff_lat, order.dropoff_lng], { icon: makeDropoffIcon() })
+            .addTo(map).bindPopup("📦 Delivery point");
+    }
+
+    // Drone marker — start at pickup
+    const startLat = order.pickup_lat || 17.4065;
+    const startLng = order.pickup_lng || 78.4772;
+    droneMarker = L.marker([startLat, startLng], { icon: makeDroneIcon(false), zIndexOffset: 1000 })
+        .addTo(map).bindPopup(`✈ Drone #${order.drone_id || "—"}`);
+
+    // Travel trail
+    travelLine = L.polyline([], { color: "#16a34a", weight: 2.5, opacity: 0.85 }).addTo(map);
+
+    // Populate initial metric values
+    mDrone.textContent    = order.drone_id    || "—";
+    mDistance.textContent = (order.distance_km || "—") + " km";
+    setBattery(order.predicted_battery_usage || 0);
+    setStatus(order.status || "Assigned");
+
+    if (order.eta_minutes) {
+        etaValue    = parseFloat(order.eta_minutes);
+        etaLastSync = Date.now();
+        mEta.textContent = etaValue.toFixed(1) + " min";
+        startTicker();
+    }
+
+    // ── WebSocket / Socket.IO handler ─────────────────────────
+    function handlePayload(payload) {
+        if (String(payload.order_id) !== String(orderId)) return;
+
+        const lat = payload.latitude;
+        const lng = payload.longitude;
+
+        // Move drone marker with physics-speed animation
+        if (lat && lng) {
+            const from = droneMarker.getLatLng();
+            animateTo(from, L.latLng(lat, lng), payload.speed_kmh || payload.speed || 38);
+
+            // Grow travel trail
+            travelCoords.push([lat, lng]);
+            travelLine.setLatLngs(travelCoords);
+        }
+
+        // Update metrics
+        if (payload.drone_id)    mDrone.textContent    = payload.drone_id;
+        if (payload.distance_km !== undefined) mDistance.textContent = parseFloat(payload.distance_km).toFixed(2) + " km";
+        if (payload.battery !== undefined)     setBattery(payload.battery);
+
+        // Reset ETA countdown to latest server value
+        if (payload.eta_minutes !== undefined && payload.eta_minutes !== null) {
+            etaValue    = parseFloat(payload.eta_minutes);
+            etaLastSync = Date.now();
+            // Ticker will pick this up within 1 second
+        }
+
+        // Status
+        const s = payload.status || "";
+        setStatus(s);
+
+        // Log notable events
+        if (payload.event === "taking_off")  addLog(`Drone #${payload.drone_id} taking off`, "ok");
+        if (payload.event === "delivered")   addLog(`Delivered! Drone #${payload.drone_id}`, "ok");
+        if (payload.event === "failure")     addLog(`Drone #${payload.drone_id} failed mid-flight`, "err");
+        if (payload.event === "telemetry" && lat) {
+            addLog(`Drone ${payload.drone_id} → ${lat.toFixed(4)},${lng.toFixed(4)} | bat ${parseFloat(payload.battery||0).toFixed(1)}% | ETA ${parseFloat(payload.eta_minutes||0).toFixed(1)} min`);
+        }
+
+        // Stop ticker when done
+        if (s === "Delivered" || s === "Failed") {
+            stopTicker();
+            isFinished = true;
+            mEta.textContent = s === "Delivered" ? "Delivered ✓" : "Failed ✗";
+        }
+    }
+
+    // ── Connect WebSocket ─────────────────────────────────────
+    if (window.io) {
+        addLog("Connecting via Socket.IO…");
+        const socket = io(SOCKET_BASE, { path: "/socket.io", transports: ["websocket"] });
+        socket.on("connect", () => {
+            socket.emit("subscribe", { order_id: orderId });
+            addLog("Socket.IO connected — subscribed to order " + orderId, "ok");
+        });
+        socket.on("telemetry", handlePayload);
+        socket.on("disconnect", () => addLog("Socket.IO disconnected", "warn"));
+        socket.on("connect_error", err => addLog("Socket error: " + err.message, "err"));
+    } else {
+        addLog("Socket.IO unavailable — using WebSocket fallback…", "warn");
+        const ws = new WebSocket(`${WS_BASE}/ws/telemetry/${orderId}`);
+        ws.onopen    = () => addLog("WebSocket connected", "ok");
+        ws.onmessage = e  => handlePayload(JSON.parse(e.data));
+        ws.onerror   = e  => addLog("WebSocket error", "err");
+        ws.onclose   = () => { if (!isFinished) addLog("WebSocket closed", "warn"); };
+    }
+
+    // Start ETA ticker
+    startTicker();
+
+})();
+</script>
 </body>
 </html>

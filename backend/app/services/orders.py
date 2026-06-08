@@ -4,9 +4,10 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 from geoalchemy2.functions import ST_GeomFromText, ST_Intersects
 from app.ml.battery_model import predict_battery_usage
+from app.services.eta_calculator import compute_eta_minutes
 from app.models import AirspaceZone, Assignment, DarkStore, Drone, Order, Product
 from app.optimizer.assignment import assign_best_drone
-from app.optimizer.path_planner import ThetaStarPlanner
+from app.optimizer.path_planner import AStarPlanner
 from app.schemas.common import OrderCreate
 from app.services.weather import get_weather
 from app.utils.geo import haversine_km, is_in_hyderabad, linestring_wkt
@@ -26,7 +27,7 @@ async def create_order(db: Session, user_id: int, payload: OrderCreate) -> Order
         raise HTTPException(status_code=400, detail="Package pickup must be within Hyderabad")
 
     zones = db.query(AirspaceZone).filter(AirspaceZone.active.is_(True)).all()
-    route_points = ThetaStarPlanner([z.coordinates for z in zones]).plan((pickup_lat, pickup_lng), (payload.dropoff_lat, payload.dropoff_lng))
+    route_points = AStarPlanner([z.coordinates for z in zones]).plan((pickup_lat, pickup_lng), (payload.dropoff_lat, payload.dropoff_lng))
     distance_km = _route_distance(route_points)
     weather = await get_weather(payload.dropoff_lat, payload.dropoff_lng)
     battery = predict_battery_usage(distance_km, payload.payload_weight, weather["wind_speed"], weather["humidity"], weather["temperature"])
@@ -35,7 +36,15 @@ async def create_order(db: Session, user_id: int, payload: OrderCreate) -> Order
         drones_query = drones_query.filter(Drone.dark_store_id == dark_store.id)
     drone, score = assign_best_drone(drones_query.all(), pickup_lat, pickup_lng, payload.payload_weight, battery)
 
-    eta = round((distance_km / 38) * 60 + (5 if payload.priority else 8), 1)
+    eta = compute_eta_minutes(
+        distance_km=distance_km,
+        payload_kg=payload.payload_weight,
+        wind_speed_ms=weather["wind_speed"],
+        temperature_c=weather["temperature"],
+        humidity_pct=weather["humidity"],
+        fragile=payload.fragile,
+        priority=payload.priority,
+    )
     order = Order(
         customer_id=user_id,
         dark_store_id=dark_store.id if dark_store else None,

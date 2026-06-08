@@ -104,7 +104,7 @@ def seed_database(db: Session) -> None:
             db.add(AirspaceZone(name=name, zone_type=zone_type, coordinates=coords, polygon=ST_GeomFromText(polygon_wkt(coords), 4326)))
 
     if db.query(SimulationConfig).count() == 0:
-        db.add(SimulationConfig(running=False, failure_probability=0.05, telemetry_interval=2, max_orders=30))
+        db.add(SimulationConfig(running=False, failure_probability=0.002, telemetry_interval=2, max_orders=30))
     db.commit()
 
 

@@ -141,23 +141,30 @@ function addMapSearchControl(map, onPick, placeholder = "Search Hyderabad addres
     return control;
 }
 
-function droneIcon() {
-    return L.divIcon({ className: "drone-icon", html: "&#9650;", iconSize: [22, 22] });
+function droneIcon(label) {
+    // Simple circle marker for admin/operations map
+    const html = `<div style="width:24px;height:24px;background:#2563eb;border:2.5px solid #fff;border-radius:50%;box-shadow:0 2px 8px rgba(37,99,235,.5);display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff;font-weight:700">${label || "✈"}</div>`;
+    return L.divIcon({ className: "", html, iconSize:[24,24], iconAnchor:[12,12] });
 }
 
 function hubIcon() {
     return L.divIcon({ className: "hub-icon", html: "&#9632;", iconSize: [18, 18] });
 }
 
-function animateMarker(marker, target, ms = 900) {
+function animateMarker(marker, target, speedKmh) {
     const start = marker.getLatLng();
+    const distM = Math.sqrt(
+        Math.pow((target[0]-start.lat)*111320,2)+
+        Math.pow((target[1]-start.lng)*111320*Math.cos(start.lat*Math.PI/180),2));
+    const ms = speedKmh
+        ? Math.min(2200, Math.max(200, distM/Math.max(3,speedKmh/3.6)*1000))
+        : 900;
     const started = performance.now();
-    function step(now) {
-        const t = Math.min(1, (now - started) / ms);
-        const lat = start.lat + (target[0] - start.lat) * t;
-        const lng = start.lng + (target[1] - start.lng) * t;
-        marker.setLatLng([lat, lng]);
-        if (t < 1) requestAnimationFrame(step);
+    function eio(t){return t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2}
+    function step(now){
+        const t=eio(Math.min(1,(now-started)/ms));
+        marker.setLatLng([start.lat+(target[0]-start.lat)*t, start.lng+(target[1]-start.lng)*t]);
+        if(t<1) requestAnimationFrame(step);
     }
     requestAnimationFrame(step);
 }
